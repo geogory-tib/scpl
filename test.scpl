@@ -1,0 +1,6 @@
+function main() word;
+begin
+	var bello word = 1 + 2 * 4;
+	var test word = 22 * 4;
+	return test;
+end
