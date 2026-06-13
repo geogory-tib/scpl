@@ -11,6 +11,7 @@ typedef enum {
   OP_MULT,
   OP_DIV,
   OP_RET,
+  OP_CALL
 }ir_type;
 typedef struct
 {

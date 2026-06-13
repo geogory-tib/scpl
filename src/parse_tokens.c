@@ -55,9 +55,20 @@ void parse_func_args(function_t *func){
 int check_type(token_t tok)
 {
   for(int i = 0;i < parser.prog.types.len;i++){
-	if(tok.len > strlen(parser.prog.types.buffer[i].name))
+	if(tok.len > strlen(parser.prog.types.buffer[i].name) ||  tok.len < strlen(parser.prog.types.buffer[i].name))
 	  continue;
 	if(!strncmp(tok.raw,parser.prog.types.buffer[i].name, tok.len)){
+	  return i;
+	}
+  }
+  return -1;
+}
+int check_if_func_defined(token_t tok)
+{
+   for(int i = 0;i < parser.prog.types.len;i++){
+	if(tok.len > parser.prog.functions.buffer[i].name.len ||  tok.len < parser.prog.functions.buffer[i].name.len)
+	  continue;
+	if(!strncmp(tok.raw,parser.prog.functions.buffer[i].name.raw, tok.len)){
 	  return i;
 	}
   }
@@ -81,6 +92,22 @@ void prat_parse_eat_line()
 	  pull_tok();
   }
 }
+void handle_function_call(token_t symbol,function_t *func)
+{
+  pull_tok();
+  //TODO -- parse_call_args(); remove the bottom if clause after implementing this.
+  if(pull_tok().type != TOK_CPAREN){
+	throw_error_tok("Expected closed paren after function call", symbol);	
+  }
+  int func_index = check_if_func_defined(symbol);
+	if(func_index == -1){
+	  prat_parse_eat_line();
+	  throw_error_tok("Undefined Function", symbol);
+	  return;
+	}
+  ir_t call_ir = {.type = OP_CALL,.arg = func_index};
+  dyn_appendM(func->instructions, call_ir);
+}
 int get_precedence(token_t tok)
 {
   return tok_precedence_table[tok.type];
@@ -101,6 +128,12 @@ void create_ir(function_t *func, token_t tok)
 	  dyn_appendM(func->instructions, minus_ir);
 	  break;
 	}
+  case TOK_SLASH:
+	{
+	  ir_t div_ir  = {.type = OP_DIV};
+	  dyn_appendM(func->instructions,div_ir);
+	  break;
+	}
   case TOK_STAR:
 	{
 	  ir_t mult_ir = {.type = OP_MULT};
@@ -114,18 +147,24 @@ void create_ir(function_t *func, token_t tok)
 	  break;
 	}
   default:
+	prat_parse_eat_line();
+	throw_error_tok("Invaild token in expression", tok);
 	break;
   case TOK_SYMBOL:
 	{
-	  int var_index = find_local_var(tok, *func);
-	  if(var_index == -1){
-		prat_parse_eat_line();
-		throw_error_tok("Undeclared variable", tok);
+	  if(peek_tok().type ==  TOK_OPAREN){
+		handle_function_call(tok, func);
+	  }else{
+		int var_index = find_local_var(tok, *func);
+		if(var_index == -1){
+		  prat_parse_eat_line();
+		  throw_error_tok("Undeclared variable", tok);
+		  break;
+		}
+		ir_t load_var = {.type = OP_LOAD,.arg = var_index};
+		dyn_appendM(func->instructions, load_var);
 		break;
 	  }
-	  ir_t load_var = {.type = OP_LOAD,.arg = var_index};
-	  dyn_appendM(func->instructions, load_var);
-	  break;
 	}
 	
   }
@@ -148,9 +187,11 @@ void pratt_parse(function_t *func,int weight)
   }
 }
 
-void parse_var_assignment(function_t *func)
+void parse_var_assignment(function_t *func,int var_ind)
 {
   pratt_parse(func, 0);
+  ir_t inst = {.type = OP_STORE, .arg = var_ind};
+  dyn_appendM(func->instructions,inst);
 }
 void parse_var_dec(function_t *func)
 {
@@ -179,9 +220,7 @@ void parse_var_dec(function_t *func)
    dyn_appendM(func->var_table,new_var);
    if(peek_tok().type == TOK_EQUAL){
 	 pull_tok();
-	 parse_var_assignment(func);
-	 ir_t inst = {.type = OP_STORE, .arg = func->var_table.len - 1};
-	 dyn_appendM(func->instructions,inst);
+	 parse_var_assignment(func, func->var_table.len - 1);
    }else if(peek_tok().type == TOK_SCOLON){
 	 ir_t load = {.type = OP_LOADIM, .arg = 0};
 	 dyn_appendM(func->instructions, load);
@@ -217,6 +256,23 @@ void parse_function_body(function_t *func)
 		}
 	  default:
 		panic("UNIMPLEMENTED FEATURE");
+	  }
+	  break;
+	case TOK_SYMBOL:
+	  {
+		token_t next_tok = peek_tok();
+		if(next_tok.type != TOK_OPAREN){
+		  handle_function_call(tok, func);
+		}else if(next_tok.type = TOK_EQUAL){
+		  int var_index = find_local_var(tok, *func);
+		  if(var_index == -1){
+			eat_line();
+			throw_error_tok("Undefined Variable", tok);
+			break;
+		  }
+		  parse_var_assignment(func, var_index);
+		}
+		break;
 	  }
 	}
   }
@@ -262,6 +318,7 @@ void parse_into_ir()
 		parse_function();
 		break;
 	  }
+
 	default:
 	  {
 		throw_error_tok("Unsupported tok", tok);

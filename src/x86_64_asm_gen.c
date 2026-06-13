@@ -15,7 +15,7 @@ _start:\n\
 
   char *intel_linux_func_pro = "    push rbp\n\
     mov rbp,rsp\n";
-char *registers_str[][5] = {
+char registers_str[][5] = {
   {"rax"},
   {"rbx"},
   {"rcx"},
@@ -51,13 +51,14 @@ typedef struct{
 char_slice asm_out;
 static unsigned int current_reg = 0;
 
-void gen_asm(ir_t ir,function_t func)
+void gen_asm(ir_t ir,function_t func,program_t program)
 {
   char snprintf_buf[512];
   switch (ir.type){
   case OP_LOADIM:
 	{
-	  sprintf(snprintf_buf, "    push %d\n", ir.arg);
+	  sprintf(snprintf_buf, "    mov %s,%d\n",registers_str[current_reg], ir.arg);
+	  current_reg++;
 	  dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
 	  break;
 	}
@@ -67,28 +68,31 @@ void gen_asm(ir_t ir,function_t func)
   case OP_ADD:
 	{
 	  //	  sprintf(snprintf_buf, "pop", ...)
-	  char *first_arg_pop = "    pop rbx\n";
-	  dyn_appendManyM(asm_out, first_arg_pop, (strlen(first_arg_pop)));
-	  char *second_arg_pop = "    pop rax\n";
-	  dyn_appendManyM(asm_out, second_arg_pop, strlen(second_arg_pop));
-	  sprintf(snprintf_buf, "    %s rax,rbx\n", math_instructs[ir.type - 4]);
+	  /* char *first_arg_pop = "    pop rbx\n"; */
+	  /* dyn_appendManyM(asm_out, first_arg_pop, (strlen(first_arg_pop))); */
+	  /* char *second_arg_pop = "    pop rax\n"; */
+	  /* dyn_appendManyM(asm_out, second_arg_pop, strlen(second_arg_pop)); */
+	  sprintf(snprintf_buf, "    %s %s,%s\n", math_instructs[ir.type - 4],registers_str[current_reg - 2],registers_str[current_reg - 1]);
+	  current_reg--;
 	  dyn_appendManyM(asm_out,snprintf_buf, strlen(snprintf_buf));
-	  char *push_result = "    push rax\n";
-	  dyn_appendManyM(asm_out, push_result, strlen(push_result));
-	  break;
+	  /* char *push_result = "    push rax\n"; */
+	  /* dyn_appendManyM(asm_out, push_result, strlen(push_result)); */
+	  break; 
 	}
   case OP_STORE:
 	{
 	  // I know this is stupid, but I am just making this as straight foreward as possible to just get somecode gen out of this thing
-	  char *pop_rax = "    pop rax\n";
-	  dyn_appendManyM(asm_out,pop_rax, strlen(pop_rax));
+	  /* char *pop_rax = "    pop rax\n"; */
+	  /* dyn_appendManyM(asm_out,pop_rax, strlen(pop_rax)); */
 	  char *push_rax = "    push rax\n";
+	  current_reg = 0;
 	  dyn_appendManyM(asm_out,push_rax,strlen(push_rax));
 	  break;
 	}
   case OP_LOAD:
   {
-	sprintf(snprintf_buf, "    mov rax,[rbp - %d]\n", (func.var_table.buffer[ir.arg].offset + 8));
+	sprintf(snprintf_buf, "    mov %s,[rbp - %d]\n",registers_str[current_reg],(func.var_table.buffer[ir.arg].offset + 8));
+	current_reg++;
 	dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
 	break;
   }
@@ -100,24 +104,44 @@ void gen_asm(ir_t ir,function_t func)
 	  dyn_appendManyM(asm_out, ret, (sizeof(ret) - 1));
 	  break;
 	}
+  case OP_CALL:
+	{
+	  for(int i = 0; i < current_reg;i++){
+		sprintf(snprintf_buf, "    push %s\n", registers_str[i]);
+		dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
+	  }
+	  // TODO -- HANDLE ARGUMENS
+	  sprintf(snprintf_buf, "    call %.*s\n",program.functions.buffer[ir.arg].name.len,program.functions.buffer[ir.arg].name.raw);
+	  dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
+	  sprintf(snprintf_buf, "    mov %s,rax\n", registers_str[current_reg]);
+	  dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
+
+		for(int i = current_reg - 1;i >= 0;i--){
+		  sprintf(snprintf_buf, "    pop %s\n", registers_str[i]);
+		  dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
+		}
+
+	  current_reg++;
+	  break;
+	}
   default:
 	panic("UNIMPLEMENTED OPCODE\n");
   }
 }
-void parse_func(function_t func)
+void parse_func(function_t func,program_t program)
 {
   dyn_appendManyM(asm_out, func.name.raw, func.name.len);
   char *line_ending = ":\n";
   dyn_appendManyM(asm_out, line_ending,2);
   dyn_appendManyM(asm_out,intel_linux_func_pro, strlen(intel_linux_func_pro));
   for(size_t i = 0;i < func.instructions.len;i++){
-	gen_asm(func.instructions.buffer[i],func);
+	gen_asm(func.instructions.buffer[i],func,program);
   }
 }
 void parse_funcs(program_t prog)
 {
   for(size_t i = 0; i < prog.functions.len;i++){
-	parse_func(prog.functions.buffer[i]);
+	parse_func(prog.functions.buffer[i],prog);
   }
 }
 char *create_asm(program_t prog)

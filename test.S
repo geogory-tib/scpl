@@ -6,30 +6,36 @@ _start:
     mov rdi,rax
     mov rax,60
     syscall
+test:
+    push rbp
+    mov rbp,rsp
+    mov rax,1
+    push rax
+    mov rax,[rbp - 8]
+    leave
+    ret
 main:
     push rbp
     mov rbp,rsp
-    push 1
-    push 2
-    push 4
-    pop rbx
-    pop rax
+    mov rbx,1
+    mov rcx,2
+    mov rdx,4
+    imul rcx,rdx
+    add rbx,rcx
+    push rax
+    mov rax,22
+    mov rbx,4
     imul rax,rbx
     push rax
-    pop rbx
-    pop rax
-    add rax,rbx
+    mov rax,1
     push rax
+    call test
+    mov rbx,rax
     pop rax
+    mov rcx,2
+    imul rbx,rcx
+    sub rax,rbx
     push rax
-    push 22
-    push 4
-    pop rbx
-    pop rax
-    imul rax,rbx
-    push rax
-    pop rax
-    push rax
-    mov rax,[rbp - 16]
+    mov rax,[rbp - 24]
     leave
     ret

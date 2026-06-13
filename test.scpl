@@ -1,6 +1,14 @@
+function test() word;
+begin
+	var return_var word = 1;
+	return return_var;
+end
+
+
 function main() word;
 begin
 	var bello word = 1 + 2 * 4;
 	var test word = 22 * 4;
-	return test;
+	var func_call word = 1 - test() * 2;
+	return func_call;
 end

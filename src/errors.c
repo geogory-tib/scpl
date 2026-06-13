@@ -18,7 +18,7 @@ void throw_error_tok(char *msg,token_t tok)
 {
   char *err_msg = calloc(ERROR_MSG_SIZE, sizeof(char));
   sprintf(err_msg, "%s '%.*s'", msg,tok.len,tok.raw);
-  error_t err = {err_msg,tok.filename,tok.line,tok.col};
+  error_t err = {err_msg,tok.filename,tok.line + 1,tok.col + 1};
   dyn_appendM(error_stack, err);
 }
 
