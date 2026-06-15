@@ -40,6 +40,7 @@ typedef struct{
   token_t name;
   int type_index;
   size_t offset;
+  char stored; // tell if the var has been stored yet;
 }var_t;
 
 typedef struct{

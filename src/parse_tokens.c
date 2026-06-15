@@ -261,9 +261,10 @@ void parse_function_body(function_t *func)
 	case TOK_SYMBOL:
 	  {
 		token_t next_tok = peek_tok();
-		if(next_tok.type != TOK_OPAREN){
+		if(next_tok.type == TOK_OPAREN){
 		  handle_function_call(tok, func);
-		}else if(next_tok.type = TOK_EQUAL){
+		}else if(next_tok.type == TOK_EQUAL){
+		  pull_tok();
 		  int var_index = find_local_var(tok, *func);
 		  if(var_index == -1){
 			eat_line();
@@ -299,11 +300,12 @@ void parse_function()
 	throw_error_tok("Expected Semi-Colon before token ", line_end);
   }
   pull_tok();
+  dyn_appendM(parser.prog.functions, func);
   if(peek_tok().type == TOK_KEYWORD && peek_tok().val == BEGIN_IND){
 	pull_tok();
-	parse_function_body(&func);
+	parse_function_body(&parser.prog.functions.buffer[parser.prog.functions.len - 1]);
   }
-  dyn_appendM(parser.prog.functions, func);
+  
 }
 
 void parse_into_ir()
@@ -318,7 +320,7 @@ void parse_into_ir()
 		parse_function();
 		break;
 	  }
-
+	  
 	default:
 	  {
 		throw_error_tok("Unsupported tok", tok);
@@ -333,6 +335,8 @@ program_t parse_tokens(token_slice in)
   memset(&parser, 0, sizeof(parser));
   parser.input = in;
   type_t word = {.name = "word",sizeof(void*)};
+  type_t byte = {.name = "byte",.size = 1};
+  dyn_appendM(parser.prog.types, byte);
   dyn_appendM(parser.prog.types, word);
   parse_into_ir();
   return parser.prog;
