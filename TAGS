@@ -1,28 +1,65 @@
 
-src/parse_tokens.c,606
-static int tok_precedence_table[tok_precedence_table8,172
-  token_slice input;23,289
-  size_t current_pos;24,310
-  type_slice types;25,332
-  func_slice functions;26,352
-}parser;parser27,376
-token_t pull_tok(29,386
-token_t peek_tok(36,566
-void eat_line(44,776
-void parse_func_args(51,917
-int check_type(57,1064
-int get_precedence(69,1298
-void create_ir(74,1376
-token_t pratt_parse(111,2034
-void parse_var_assignment(130,2479
-void parse_var_dec(135,2554
-void parse_function_body(166,3558
-void parse_function(182,3844
-void parse_into_ir(205,4391
-char *parse_tokens(parse_tokens225,4697
+src/parse_tokens.c,753
+static int tok_precedence_table[tok_precedence_table7,152
+  token_slice input;22,269
+  size_t current_pos;23,290
+  program_t prog;24,312
+}parser;parser25,330
+token_t pull_tok(27,340
+token_t peek_tok(34,523
+void eat_line(41,708
+int check_type(47,848
+void parse_func_args(59,1152
+int check_if_func_defined(93,2077
+int find_local_var(104,2400
+void prat_parse_eat_line(116,2768
+void parse_call_args(122,2891
+int get_precedence(139,3415
+void create_ir(144,3493
+void pratt_parse(202,4660
+void parse_call_args(218,5000
+void parse_var_assignment(240,5598
+void parse_var_dec(246,5772
+ void parse_return(281,7038
+void parse_function_body(287,7180
+void parse_function(332,7970
+void parse_into_ir(361,8767
+program_t parse_tokens(383,9143
+
+src/x86_64_asm_gen.c,907
+#define WORD_SIZE 7,145
+char *intel_linux_preamble intel_linux_preamble8,179
+  char *intel_linux_func_pro intel_linux_func_pro17,344
+char registers_str[registers_str19,412
+enum register_index{register_index28,520
+  rax_pos 29,541
+  rbx_pos,30,556
+  rcx_pos,31,567
+  rdx_pos,32,578
+  rsi_pos,33,589
+  rdi_pos,34,600
+  rdp_pos,35,611
+  __reg_index_end__36,622
+char func_arg_reg[func_arg_reg39,646
+char math_instructs[math_instructs48,739
+char size_tabel[size_tabel55,816
+char rax_size_table[rax_size_table65,951
+  char *buffer;buffer77,1099
+  size_t len;78,1115
+  size_t cap;79,1129
+}char_slice;char_slice80,1143
+char_slice asm_out;81,1156
+static unsigned int current_reg 82,1176
+static size_t stack_size 83,1213
+void load_var(86,1245
+void store_var(100,1729
+void gen_asm(122,2633
+void parse_func(211,5886
+void parse_funcs(222,6278
+char *create_asm(create_asm230,6447
 
 src/main.c,16
-int main(8,176
+int main(9,217
 
 src/lexer.c,467
 static const char keyword_table[keyword_table9,158
@@ -71,49 +108,62 @@ src/include/error.h,415
 src/include/io.h,18
 #define IO_H2,13
 
-src/include/parse_tokens.h,989
+src/include/parse_tokens.h,1324
 #define PARSE_TOKENS_H2,23
-  OP_LOAD,5,80
-  OP_LOADIM,6,91
-  OP_STORE,7,104
-  OP_STOREIM,8,116
-  OP_ADD,9,130
-  OP_SUB,10,140
-  OP_MULT,11,150
-  OP_DIV,12,161
-  OP_RET,13,171
-}ir_type;ir_type14,181
-  ir_type type;17,208
-  int arg;18,224
-}ir_t;ir_t19,235
-  ir_t *buffer;buffer22,259
-  size_t len;23,275
-  size_t cap;24,289
-}ir_slice;ir_slice25,303
-  char *name;name28,331
-  int size;29,345
-}type_t;type_t30,357
-  type_t *buffer;buffer33,383
-  size_t len;34,401
-  size_t cap;35,415
-}type_slice;type_slice36,430
-  token_t name;39,460
-  int type_index;40,476
-}var_t;var_t41,494
-  var_t *buffer;buffer44,519
-  size_t len;45,536
-  size_t cap;46,550
-}var_slice;var_slice47,565
-  token_t name;50,594
-  ir_slice instructions;51,610
-  var_slice var_table;52,635
-  var_slice args;53,658
-  type_t ret_type;54,676
-}function_t;function_t55,695
-  function_t *buffer;buffer58,725
-  size_t len;59,747
-  size_t cap;60,761
-}func_slice;func_slice61,775
+  OP_LOAD 5,80
+  OP_LOADIM,6,95
+  OP_STORE,7,108
+  OP_STOREIM,8,120
+  OP_ADD,9,134
+  OP_SUB,10,144
+  OP_MULT,11,154
+  OP_DIV,12,165
+  OP_RET,13,175
+  OP_PUSH_ARG,14,185
+  OP_CALL15,200
+}ir_type;ir_type16,210
+  token_t name;18,236
+  int type_index;19,252
+  size_t offset;20,270
+  char stored;21,287
+}var_t;var_t22,342
+  var_t *buffer;buffer25,367
+  size_t len;26,384
+  size_t cap;27,398
+}var_slice;var_slice28,413
+  var_slice args;32,443
+  int func_ind;33,461
+}ir_func_call;ir_func_call34,477
+  ir_type type;37,509
+	int arg;39,534
+	ir_func_call fargs;40,544
+  }args;args41,565
+}ir_t;ir_t42,574
+  ir_t *buffer;buffer46,599
+  size_t len;47,615
+  size_t cap;48,629
+}ir_slice;ir_slice49,643
+  char *name;name52,671
+  int size;53,685
+}type_t;type_t54,697
+  type_t *buffer;buffer57,723
+  size_t len;58,741
+  size_t cap;59,755
+}type_slice;type_slice60,770
+  token_t name;65,802
+  ir_slice instructions;66,818
+  var_slice var_table;67,843
+  var_slice args;68,866
+  type_t ret_type;69,884
+}function_t;function_t70,903
+  function_t *buffer;buffer73,933
+  size_t len;74,955
+  size_t cap;75,969
+}func_slice;func_slice76,983
+  func_slice functions;79,1013
+  type_slice types;80,1037
+  var_slice globals;81,1057
+}program_t;program_t82,1078
 
 src/include/lexer.h,892
 #define LEXER_H2,16
@@ -156,67 +206,69 @@ enum keywordtypes{keywordtypes35,473
 }token_slice;token_slice62,810
 #define print_token(64,894
 
-src/include/gtd.h,1764
+src/include/gtd.h,1830
 #define GTD_H2,14
 #define ARENA_FULL 7,107
 #define panic(8,129
 #define dyn_makeM(12,269
 #define dyn_appendM(18,444
-typedef struct arena_t 36,952
-  void *buffer;buffer37,977
-  int brk;38,993
-  int cap;39,1004
-} arena;40,1015
-static inline arena arena_new(41,1024
-static inline void *arena_alloc(arena_alloc49,1191
-static inline int arena_used(58,1416
-static inline void arena_free(65,1561
-typedef struct garena_t 75,1835
-  arena *pages;pages76,1861
-  int page_size;77,1877
-  int current_page;78,1894
-  int page_count;79,1914
-} garena;80,1932
-static inline garena garena_new(82,1943
-static inline arena *garena_page_new(garena_page_new95,2328
-static inline void *garena_alloc(garena_alloc106,2730
-static inline void *garena_realloc(garena_realloc118,3107
-static inline int garena_used(138,3871
-static inline void garena_destroy(146,4107
-#define ALLOC_FAILURE 157,4397
-#define SLICE_FREE(158,4422
-#define SLICE_ALLOC_AR(161,4603
-#define SLICE_ALLOC_GAR(165,4876
-#define SLICE_ALLOC_MALLOC(169,5149
-template <typename T> struct cslice 173,5398
-  size_t len;174,5436
-  T *buffer;buffer175,5450
-  cslice<T> slice(177,5495
-  size_t count(183,5629
-template <typename T> struct Dyn_Arry 203,6033
-  size_t cap;204,6073
-  size_t len;205,6087
-  T *buffer;buffer206,6101
-  int append(208,6182
-  int append_arr(219,6392
-  int grow(233,6750
-  void free_arr(242,6947
-  inline void erase(248,7038
-  inline void replace_at(253,7181
-  int insert_at(263,7507
-  void delete_at(285,8001
-  inline void pop(296,8314
-  int shrink(301,8423
-  cslice<T> to_slice(311,8686
-template <typename T> Dyn_Arry<T> new_dyn_arry(327,9030
-struct string_builder 335,9258
-  char *buffer;buffer336,9282
-  int len;337,9298
-  int cap;338,9309
+#define dyn_insertM(27,779
+#define dyn_appendManyM(39,1185
+typedef struct arena_t 54,1514
+  void *buffer;buffer55,1539
+  int brk;56,1555
+  int cap;57,1566
+} arena;58,1577
+static inline arena arena_new(59,1586
+static inline void *arena_alloc(arena_alloc67,1753
+static inline int arena_used(76,1978
+static inline void arena_free(83,2123
+typedef struct garena_t 93,2397
+  arena *pages;pages94,2423
+  int page_size;95,2439
+  int current_page;96,2456
+  int page_count;97,2476
+} garena;98,2494
+static inline garena garena_new(100,2505
+static inline arena *garena_page_new(garena_page_new113,2890
+static inline void *garena_alloc(garena_alloc124,3292
+static inline void *garena_realloc(garena_realloc136,3669
+static inline int garena_used(156,4433
+static inline void garena_destroy(164,4669
+#define ALLOC_FAILURE 175,4959
+#define SLICE_FREE(176,4984
+#define SLICE_ALLOC_AR(179,5165
+#define SLICE_ALLOC_GAR(183,5438
+#define SLICE_ALLOC_MALLOC(187,5711
+template <typename T> struct cslice 191,5960
+  size_t len;192,5998
+  T *buffer;buffer193,6012
+  cslice<T> slice(195,6057
+  size_t count(201,6191
+template <typename T> struct Dyn_Arry 221,6595
+  size_t cap;222,6635
+  size_t len;223,6649
+  T *buffer;buffer224,6663
+  int append(226,6744
+  int append_arr(237,6954
+  int grow(251,7312
+  void free_arr(260,7509
+  inline void erase(266,7600
+  inline void replace_at(271,7743
+  int insert_at(281,8069
+  void delete_at(303,8563
+  inline void pop(314,8876
+  int shrink(319,8985
+  cslice<T> to_slice(329,9248
+template <typename T> Dyn_Arry<T> new_dyn_arry(345,9592
+struct string_builder 353,9820
+  char *buffer;buffer354,9844
+  int len;355,9860
+  int cap;356,9871
 
 src/errors.c,141
 error_slice error_stack;7,138
 void throw_error(11,166
 void throw_error_tok(17,313
-void print_error(25,562
-void print_error_stack(30,685
+void print_error(25,570
+void print_error_stack(30,693

@@ -44,14 +44,6 @@ void eat_line()
 	//just pulls the till the end of the line
   }
 }
-
-void parse_func_args(function_t *func){
-  // TODO -- handle args;
-  for(token_t tok = pull_tok();tok.type == TOK_CPAREN;tok = pull_tok()){
-	
-  }
-  pull_tok();
-}
 int check_type(token_t tok)
 {
   for(int i = 0;i < parser.prog.types.len;i++){
@@ -63,6 +55,53 @@ int check_type(token_t tok)
   }
   return -1;
 }
+// must check type before providing type 
+var_t create_new_stack_var(function_t *func,token_t name,int type_ind)
+{
+  var_t var = {0};
+  var.name = name;
+  var.type_index = type_ind;
+  if(func->var_table.len == 0)
+	var.offset = 0;
+  else{
+	var.offset = func->var_table.buffer[func->var_table.len - 1].offset + parser.prog.types.buffer[func->var_table.buffer[func->var_table.len - 1].type_index].size;
+  }
+  return var;
+}
+void parse_func_args(function_t *func){
+
+  if(pull_tok().type != TOK_OPAREN){
+	eat_line();
+	throw_error_tok("Expected paren after function name",func->name);
+	return;
+  }
+  for(;;){
+	var_t arg_var;
+	token_t name = pull_tok();
+	if(name.type == TOK_CPAREN || name.type == TOK_EOF){
+	  break;
+	}
+	if(name.type != TOK_SYMBOL){
+	  throw_error_tok("Expected symbol for function argument name", func->name);
+	}
+	token_t type_name = pull_tok();
+	if(type_name.type != TOK_SYMBOL){
+	  throw_error_tok("Expected type after function argument",type_name);
+	}
+	int type_index = check_type(type_name);
+	if(type_index == -1){
+	  throw_error_tok("Undefined Type", type_name);
+	}
+	token_t semi_colon = pull_tok();
+	if(semi_colon.type != TOK_SCOLON){
+	  throw_error_tok("Expected ';' after argument type", type_name);
+	}
+	arg_var = create_new_stack_var(func, name, type_index);
+	dyn_appendM(func->args, arg_var);
+	dyn_appendM(func->var_table, arg_var);
+  }
+}
+
 int check_if_func_defined(token_t tok)
 {
    for(int i = 0;i < parser.prog.types.len;i++){
@@ -92,20 +131,21 @@ void prat_parse_eat_line()
 	  pull_tok();
   }
 }
+void parse_call_args(function_t *func,int func_index,token_t call_name);
 void handle_function_call(token_t symbol,function_t *func)
 {
-  pull_tok();
+  
+  ir_t call_ir = {.type = OP_CALL};
   //TODO -- parse_call_args(); remove the bottom if clause after implementing this.
-  if(pull_tok().type != TOK_CPAREN){
-	throw_error_tok("Expected closed paren after function call", symbol);	
-  }
+
   int func_index = check_if_func_defined(symbol);
-	if(func_index == -1){
-	  prat_parse_eat_line();
-	  throw_error_tok("Undefined Function", symbol);
-	  return;
-	}
-  ir_t call_ir = {.type = OP_CALL,.arg = func_index};
+  if(func_index == -1){
+	prat_parse_eat_line();
+	throw_error_tok("Undefined Function", symbol);
+	return;
+  }
+  parse_call_args(func,func_index,symbol);
+  call_ir.args.fargs.func_ind = func_index;
   dyn_appendM(func->instructions, call_ir);
 }
 int get_precedence(token_t tok)
@@ -142,7 +182,7 @@ void create_ir(function_t *func, token_t tok)
 	}
   case TOK_NUM:
 	{
-	  ir_t num_ir = {.type = OP_LOADIM,.arg = tok.val};
+	  ir_t num_ir = {.type = OP_LOADIM,.args.arg = tok.val};
 	  dyn_appendM(func->instructions, num_ir);
 	  break;
 	}
@@ -153,6 +193,7 @@ void create_ir(function_t *func, token_t tok)
   case TOK_SYMBOL:
 	{
 	  if(peek_tok().type ==  TOK_OPAREN){
+		pull_tok();
 		handle_function_call(tok, func);
 	  }else{
 		int var_index = find_local_var(tok, *func);
@@ -161,7 +202,7 @@ void create_ir(function_t *func, token_t tok)
 		  throw_error_tok("Undeclared variable", tok);
 		  break;
 		}
-		ir_t load_var = {.type = OP_LOAD,.arg = var_index};
+		ir_t load_var = {.type = OP_LOAD,.args.arg = var_index};
 		dyn_appendM(func->instructions, load_var);
 		break;
 	  }
@@ -186,11 +227,33 @@ void pratt_parse(function_t *func,int weight)
 	return;
   }
 }
+void parse_call_args(function_t *func,int func_called,token_t call_name)
+{
+  int args_supplied = 0;
+  for(;;){
+	if(peek_tok().type == TOK_CPAREN){
+	  pull_tok();
+	  break;
+	}
+	pratt_parse(func, 0);
+	ir_t push_arg = {.type = OP_PUSH_ARG};
+	dyn_appendM(func->instructions, push_arg);
+	args_supplied++;
+  }
+  if(args_supplied > parser.prog.functions.buffer[func_called].args.len){
+	prat_parse_eat_line();
+	throw_error_tok("too many args provided for function",call_name);
+  }
+  if(args_supplied < parser.prog.functions.buffer[func_called].args.len){
+	prat_parse_eat_line();
+	throw_error_tok("too few args provided for function",call_name);
+  }
+}
 
 void parse_var_assignment(function_t *func,int var_ind)
 {
   pratt_parse(func, 0);
-  ir_t inst = {.type = OP_STORE, .arg = var_ind};
+  ir_t inst = {.type = OP_STORE, .args.arg = var_ind};
   dyn_appendM(func->instructions,inst);
 }
 void parse_var_dec(function_t *func)
@@ -211,20 +274,15 @@ void parse_var_dec(function_t *func)
    if(type_ind == -1){
 	 throw_error_tok("Expected valid after var name ", type_name);
    }
-   var_t new_var = {.name = new_var_name,.type_index = type_ind};
-   if(func->var_table.len > 0){
-	 size_t prev_var_type = func->var_table.buffer[func->var_table.len - 1].type_index;
-	 size_t prev_var_size = parser.prog.types.buffer[prev_var_type].size;
-	 new_var.offset = func->var_table.buffer[func->var_table.len - 1].offset + prev_var_size;
-   }
+   var_t new_var = create_new_stack_var(func, new_var_name, type_ind);
    dyn_appendM(func->var_table,new_var);
    if(peek_tok().type == TOK_EQUAL){
 	 pull_tok();
 	 parse_var_assignment(func, func->var_table.len - 1);
    }else if(peek_tok().type == TOK_SCOLON){
-	 ir_t load = {.type = OP_LOADIM, .arg = 0};
+	 ir_t load = {.type = OP_LOADIM, .args.arg = 0};
 	 dyn_appendM(func->instructions, load);
-	 ir_t store = {.type = OP_LOAD, .arg = func->var_table.len -1};
+	 ir_t store = {.type = OP_LOAD, .args.arg = func->var_table.len -1};
 	 dyn_appendM(func->instructions, store);
    }
 }
@@ -305,7 +363,6 @@ void parse_function()
 	pull_tok();
 	parse_function_body(&parser.prog.functions.buffer[parser.prog.functions.len - 1]);
   }
-  
 }
 
 void parse_into_ir()
@@ -329,7 +386,9 @@ void parse_into_ir()
   }
 }
 
+// entry point for back end
 extern char *create_asm(program_t prog);
+
 program_t parse_tokens(token_slice in)
 {
   memset(&parser, 0, sizeof(parser));

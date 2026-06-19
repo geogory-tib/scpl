@@ -36,6 +36,15 @@ enum register_index{
   __reg_index_end__
 };
 
+char func_arg_reg[][5] = {
+  {"rdi"},
+  {"rsi"},
+  {"rdx"},
+  {"rcx"},
+  {"r8"},
+  {"r9"}
+};
+
 char math_instructs[][5] = {
   {"add"},
   {"sub"},
@@ -81,7 +90,7 @@ void load_var(var_t var, program_t program)
   if(var_type.size == WORD_SIZE)
 	sprintf(sprintf_buf, "    mov  %s,[rbp - %d]\n",registers_str[current_reg],var.offset + 8);
   else{
-	sprintf(sprintf_buf, "    movzx %s PTR  %s,[rbp - %d]\n",size_tabel[var_type.size - 1],registers_str[current_reg],var.offset + 8);
+	sprintf(sprintf_buf, "    movzx %s,%s PTR [rbp - %d]\n",registers_str[current_reg],size_tabel[var_type.size - 1],var.offset + 8);
   }
   
   current_reg++;
@@ -116,7 +125,7 @@ void gen_asm(ir_t ir,function_t func,program_t program)
   switch (ir.type){
   case OP_LOADIM:
 	{
-	  sprintf(snprintf_buf, "    mov %s,%d\n",registers_str[current_reg], ir.arg);
+	  sprintf(snprintf_buf, "    mov %s,%d\n",registers_str[current_reg], ir.args.arg);
 	  current_reg++;
 	  dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
 	  break;
@@ -140,12 +149,12 @@ void gen_asm(ir_t ir,function_t func,program_t program)
 	}
   case OP_STORE:
 	{
-	  store_var(&func.var_table.buffer[ir.arg], program);
+	  store_var(&func.var_table.buffer[ir.args.arg], program);
 	  break;
 	}
   case OP_LOAD:
   {
-	load_var(func.var_table.buffer[ir.arg], program);
+	load_var(func.var_table.buffer[ir.args.arg], program);
 	break;
   }
   case OP_RET:
@@ -172,8 +181,11 @@ void gen_asm(ir_t ir,function_t func,program_t program)
 		sprintf(snprintf_buf, "    sub rsp,%ld\n", safe_stack_offset);
 	   	dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
 	  }
-	  // TODO -- HANDLE ARGUMENS
-	  sprintf(snprintf_buf, "    call %.*s\n",program.functions.buffer[ir.arg].name.len,program.functions.buffer[ir.arg].name.raw);
+	  for(int i = (program.functions.buffer[ir.args.fargs.func_ind].args.len - 1); i >= 0; i--){
+		sprintf(snprintf_buf, "    pop %s\n", func_arg_reg[i]);
+		dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
+	  }
+	  sprintf(snprintf_buf, "    call %.*s\n",program.functions.buffer[ir.args.fargs.func_ind].name.len,program.functions.buffer[ir.args.fargs.func_ind].name.raw);
 	  dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
 	  sprintf(snprintf_buf, "    add rsp,%ld\n",safe_stack_offset);
 	  dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
@@ -186,16 +198,31 @@ void gen_asm(ir_t ir,function_t func,program_t program)
 	  current_reg++;
 	  break;
 	}
+  case OP_PUSH_ARG:
+	{
+	  // will just push rax after evaulating expr
+	  char push_ins[] = "    push rax\n";
+	  dyn_appendManyM(asm_out, push_ins,strlen(push_ins));
+	  current_reg = 0;
+	  break;
+	}
   default:
 	panic("UNIMPLEMENTED OPCODE\n");
   }
 }
+
 void parse_func(function_t func,program_t program)
 {
   dyn_appendManyM(asm_out, func.name.raw, func.name.len);
   char *line_ending = ":\n";
   dyn_appendManyM(asm_out, line_ending,2);
   dyn_appendManyM(asm_out,intel_linux_func_pro, strlen(intel_linux_func_pro));
+  char sprintf_buf[64];
+  for(int i = 0; i < func.args.len;i++){
+	sprintf(sprintf_buf, "    mov rax,%s\n", func_arg_reg[i]);
+	dyn_appendManyM(asm_out, sprintf_buf, strlen(sprintf_buf));
+	store_var(&func.var_table.buffer[i], program);
+  }
   for(size_t i = 0;i < func.instructions.len;i++){
 	gen_asm(func.instructions.buffer[i],func,program);
   }

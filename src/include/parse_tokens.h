@@ -11,13 +11,36 @@ typedef enum {
   OP_MULT,
   OP_DIV,
   OP_RET,
+  OP_PUSH_ARG,
   OP_CALL
 }ir_type;
+typedef struct{
+  token_t name;
+  int type_index;
+  size_t offset;
+  char stored; // tell if the var has been stored yet;
+}var_t;
+
+typedef struct{
+  var_t *buffer;
+  size_t len;
+  size_t cap; 
+}var_slice;
+
+typedef struct
+{
+  var_slice args;
+  int func_ind;
+}ir_func_call;
 typedef struct
 {
   ir_type type;
-  int arg;
+  union{
+	int arg;
+	ir_func_call fargs;
+  }args;
 }ir_t;
+
 
 typedef struct{
   ir_t *buffer;
@@ -36,18 +59,7 @@ typedef struct{
   size_t cap; 
 }type_slice;
 
-typedef struct{
-  token_t name;
-  int type_index;
-  size_t offset;
-  char stored; // tell if the var has been stored yet;
-}var_t;
 
-typedef struct{
-  var_t *buffer;
-  size_t len;
-  size_t cap; 
-}var_slice;
 
 typedef struct{
   token_t name;

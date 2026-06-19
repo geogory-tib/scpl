@@ -1,13 +1,9 @@
-function test() word;
+function add(a byte; b byte;) byte;
 begin
-	var return_var word = 1;
-	return return_var;
+	return a + b;
 end
-
-
 function main() word;
 begin
-	var bello byte = 1 + 2 * 4;
-	bello = 0;
-	return main();
+	var test byte = add(22 + 1; 4;);
+	return 0;
 end

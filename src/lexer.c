@@ -19,7 +19,8 @@ static const char keyword_table[][15] = {
 
 static int check_if_keyword(token_t tok){
   for(int i = 0;i < __keywords_end;i++){
-	if(tok.len > strlen(keyword_table[i]))
+	size_t keyword_len = strlen(keyword_table[i]);
+	if(tok.len > keyword_len || tok.len < keyword_len)
 	  continue;
 	if(!strncmp(tok.raw, keyword_table[i], tok.len)){
 	  return i;
