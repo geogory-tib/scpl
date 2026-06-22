@@ -6,36 +6,47 @@ _start:
     mov rdi,rax
     mov rax,60
     syscall
-add:
+test:
     push rbp
     mov rbp,rsp
     mov rax,rdi
-    sub rsp,1
-    mov  BYTE PTR [rbp - 8],al
+    sub rsp,8
+    mov  QWORD PTR [rbp - 8],rax
     mov rax,rsi
-    sub rsp,1
-    mov  BYTE PTR [rbp - 9],al
-    movzx rax,BYTE PTR [rbp - 8]
-    movzx rbx,BYTE PTR [rbp - 9]
+    sub rsp,8
+    mov  QWORD PTR [rbp - 16],rax
+    mov  rax,[rbp - 16]
+    xor rbx,rbx
+    movzx rbx,BYTE PTR [rax]
+    mov rax,rbx
+    mov  rbx,[rbp - 16]
+    xor rcx,rcx
+    movzx rcx,BYTE PTR [rbx]
+    mov rbx,rcx
     add rax,rbx
+    mov  rbx,[rbp - 8]
+    mov  BYTE PTR [rbx],al
     leave
     ret
 main:
     push rbp
     mov rbp,rsp
     mov rax,22
-    mov rbx,1
-    add rax,rbx
+    sub rsp,1
+    mov  BYTE PTR [rbp - 1],al
+    lea  rax,[rbp - 1]
+    sub rsp,8
+    mov  QWORD PTR [rbp - 9],rax
+    mov  rax,[rbp - 9]
     push rax
-    mov rax,4
+    mov  rax,[rbp - 9]
     push rax
     pop rsi
     pop rdi
-    call add
-    add rsp,0
+    sub rsp,7
+    call test
+    add rsp,7
     mov rax,rax
-    sub rsp,1
-    mov  BYTE PTR [rbp - 8],al
     mov rax,0
     leave
     ret

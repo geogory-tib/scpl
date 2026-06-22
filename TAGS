@@ -1,5 +1,5 @@
 
-src/parse_tokens.c,753
+src/parse_tokens.c,797
 static int tok_precedence_table[tok_precedence_table7,152
   token_slice input;22,269
   size_t current_pos;23,290
@@ -9,22 +9,23 @@ token_t pull_tok(27,340
 token_t peek_tok(34,523
 void eat_line(41,708
 int check_type(47,848
-void parse_func_args(59,1152
-int check_if_func_defined(93,2077
-int find_local_var(104,2400
-void prat_parse_eat_line(116,2768
-void parse_call_args(122,2891
-int get_precedence(139,3415
-void create_ir(144,3493
-void pratt_parse(202,4660
-void parse_call_args(218,5000
-void parse_var_assignment(240,5598
-void parse_var_dec(246,5772
- void parse_return(281,7038
-void parse_function_body(287,7180
-void parse_function(332,7970
-void parse_into_ir(361,8767
-program_t parse_tokens(383,9143
+var_t create_new_stack_var(59,1193
+void parse_func_args(71,1571
+int check_if_func_defined(105,2512
+int find_local_var(116,2835
+void prat_parse_eat_line(128,3203
+void handle_function_call(135,3399
+int get_precedence(151,3876
+void create_ir(156,4024
+void pratt_parse(241,6027
+void parse_call_args(265,6641
+void parse_var_assignment(290,7366
+void parse_var_dec(296,7586
+ void parse_return(326,8573
+void parse_function_body(332,8737
+void parse_function(377,9527
+void parse_into_ir(405,10321
+program_t parse_tokens(429,10726
 
 src/x86_64_asm_gen.c,907
 #define WORD_SIZE 7,145
@@ -41,43 +42,43 @@ enum register_index{register_index28,520
   rdp_pos,35,611
   __reg_index_end__36,622
 char func_arg_reg[func_arg_reg39,646
-char math_instructs[math_instructs48,739
-char size_tabel[size_tabel55,816
-char rax_size_table[rax_size_table65,951
-  char *buffer;buffer77,1099
-  size_t len;78,1115
-  size_t cap;79,1129
-}char_slice;char_slice80,1143
-char_slice asm_out;81,1156
-static unsigned int current_reg 82,1176
-static size_t stack_size 83,1213
-void load_var(86,1245
+char math_instructs[math_instructs48,740
+char size_tabel[size_tabel55,817
+char rax_size_table[rax_size_table65,952
+  char *buffer;buffer77,1100
+  size_t len;78,1116
+  size_t cap;79,1130
+}char_slice;char_slice80,1144
+char_slice asm_out;81,1157
+static unsigned int current_reg 82,1177
+static size_t stack_size 83,1214
+void load_var(86,1246
 void store_var(100,1729
 void gen_asm(122,2633
-void parse_func(211,5886
-void parse_funcs(222,6278
-char *create_asm(create_asm230,6447
+void parse_func(214,6000
+void parse_funcs(230,6609
+char *create_asm(create_asm238,6778
 
 src/main.c,16
 int main(9,217
 
-src/lexer.c,467
+src/lexer.c,468
 static const char keyword_table[keyword_table9,158
 static int check_if_keyword(20,283
-  char *input;input32,521
-  char *filename;filename33,536
-  token_slice output;34,554
-  size_t current_pos;35,576
-  size_t input_len;36,598
-  size_t current_col;37,618
-  size_t current_line;38,640
-}lexer;lexer39,663
-char pull_ch(42,673
-char peek_ch(55,944
-void parse_symbol(61,1058
-void lex_number(78,1464
-void lex_input(93,1887
-token_slice lex_tokens(246,4777
+  char *input;input33,581
+  char *filename;filename34,596
+  token_slice output;35,614
+  size_t current_pos;36,636
+  size_t input_len;37,658
+  size_t current_col;38,678
+  size_t current_line;39,700
+}lexer;lexer40,723
+char pull_ch(43,733
+char peek_ch(56,1004
+void parse_symbol(62,1118
+void lex_number(79,1524
+void lex_input(94,1947
+token_slice lex_tokens(274,5378
 
 src/io.c,176
   char *buf;buf15,182
@@ -108,7 +109,7 @@ src/include/error.h,415
 src/include/io.h,18
 #define IO_H2,13
 
-src/include/parse_tokens.h,1324
+src/include/parse_tokens.h,1465
 #define PARSE_TOKENS_H2,23
   OP_LOAD 5,80
   OP_LOADIM,6,95
@@ -122,50 +123,56 @@ src/include/parse_tokens.h,1324
   OP_PUSH_ARG,14,185
   OP_CALL15,200
 }ir_type;ir_type16,210
-  token_t name;18,236
-  int type_index;19,252
-  size_t offset;20,270
-  char stored;21,287
-}var_t;var_t22,342
-  var_t *buffer;buffer25,367
-  size_t len;26,384
-  size_t cap;27,398
-}var_slice;var_slice28,413
-  var_slice args;32,443
-  int func_ind;33,461
-}ir_func_call;ir_func_call34,477
-  ir_type type;37,509
-	int arg;39,534
-	ir_func_call fargs;40,544
-  }args;args41,565
-}ir_t;ir_t42,574
-  ir_t *buffer;buffer46,599
-  size_t len;47,615
-  size_t cap;48,629
-}ir_slice;ir_slice49,643
-  char *name;name52,671
-  int size;53,685
-}type_t;type_t54,697
-  type_t *buffer;buffer57,723
-  size_t len;58,741
-  size_t cap;59,755
-}type_slice;type_slice60,770
-  token_t name;65,802
-  ir_slice instructions;66,818
-  var_slice var_table;67,843
-  var_slice args;68,866
-  type_t ret_type;69,884
-}function_t;function_t70,903
-  function_t *buffer;buffer73,933
-  size_t len;74,955
-  size_t cap;75,969
-}func_slice;func_slice76,983
-  func_slice functions;79,1013
-  type_slice types;80,1037
-  var_slice globals;81,1057
-}program_t;program_t82,1078
+  VAR_BINARY,18,234
+  VAR_POINTER,19,248
+  VAR_ARRAY20,263
+}var_type;var_type21,275
+  token_t name;23,302
+  int type_index;24,318
+  size_t offset;25,336
+  var_type v_type;26,353
+  char stored;27,372
+}var_t;var_t28,427
+  var_t *buffer;buffer31,452
+  size_t len;32,469
+  size_t cap;33,483
+}var_slice;var_slice34,498
+  var_slice args;38,528
+  int func_ind;39,546
+}ir_func_call;ir_func_call40,562
+  ir_type type;43,594
+	int arg;45,619
+	ir_func_call fargs;46,629
+  }args;args47,650
+}ir_t;ir_t48,659
+  ir_t *buffer;buffer52,684
+  size_t len;53,700
+  size_t cap;54,714
+}ir_slice;ir_slice55,728
+  char *name;name58,756
+  int size;59,770
+  var_t type;60,782
+}type_t;type_t61,796
+  type_t *buffer;buffer64,822
+  size_t len;65,840
+  size_t cap;66,854
+}type_slice;type_slice67,869
+  token_t name;72,901
+  ir_slice instructions;73,917
+  var_slice var_table;74,942
+  var_slice args;75,965
+  type_t ret_type;76,983
+}function_t;function_t77,1002
+  function_t *buffer;buffer80,1032
+  size_t len;81,1054
+  size_t cap;82,1068
+}func_slice;func_slice83,1082
+  func_slice functions;86,1112
+  type_slice types;87,1136
+  var_slice globals;88,1156
+}program_t;program_t89,1177
 
-src/include/lexer.h,892
+src/include/lexer.h,930
 #define LEXER_H2,16
   TOK_KEYWORD 4,46
   TOK_NUM,5,65
@@ -178,33 +185,35 @@ src/include/lexer.h,892
   TOK_CPAREN,12,154
   TOK_SCOLON,13,168
   TOK_EQUAL,14,182
-  TOK_EOF,15,195
-  __tok_type__end16,206
-}tok_type;tok_type17,224
-static char tok_type_str[tok_type_str20,249
-enum keywordtypes{keywordtypes35,473
-  TO_IND 36,492
-  IF_IND,37,507
-  END_IND,38,517
-  FOR_IND,39,528
-  VAR_IND,40,539
-  BEGIN_IND,41,550
-  RETURN_IND,42,563
-  FUNCTION_IND,43,577
-  __keywords_end44,593
-  char *raw;raw49,631
-  char *filename;filename50,644
-  size_t len;51,662
-  tok_type type;52,676
-  size_t val;53,693
-  size_t line;54,707
-  size_t col;55,722
-}token_t;token_t56,736
-  token_t *buffer;buffer59,763
-  size_t cap;60,782
-  size_t len;61,796
-}token_slice;token_slice62,810
-#define print_token(64,894
+  TOK_AT,15,195
+  TOK_CARROT,16,205
+  TOK_EOF,17,219
+  __tok_type__end18,230
+}tok_type;tok_type19,248
+static char tok_type_str[tok_type_str22,273
+enum keywordtypes{keywordtypes39,525
+  TO_IND 40,544
+  IF_IND,41,559
+  END_IND,42,569
+  FOR_IND,43,580
+  VAR_IND,44,591
+  BEGIN_IND,45,602
+  RETURN_IND,46,615
+  FUNCTION_IND,47,629
+  __keywords_end48,645
+  char *raw;raw53,683
+  char *filename;filename54,696
+  size_t len;55,714
+  tok_type type;56,728
+  size_t val;57,745
+  size_t line;58,759
+  size_t col;59,774
+}token_t;token_t60,788
+  token_t *buffer;buffer63,815
+  size_t cap;64,834
+  size_t len;65,848
+}token_slice;token_slice66,862
+#define print_token(68,946
 
 src/include/gtd.h,1830
 #define GTD_H2,14

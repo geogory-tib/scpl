@@ -12,12 +12,22 @@ typedef enum {
   OP_DIV,
   OP_RET,
   OP_PUSH_ARG,
+  OP_GET_ADDR,
+  OP_DEREF_ADDR,
+  OP_DEREF_ASSIGN,
+  OP_CLEAR_STACK,
   OP_CALL
 }ir_type;
+typedef enum{
+  VAR_BINARY = 0,
+  VAR_POINTER,
+  VAR_ARRAY
+}var_type;
 typedef struct{
   token_t name;
   int type_index;
   size_t offset;
+  int v_type;
   char stored; // tell if the var has been stored yet;
 }var_t;
 
@@ -51,6 +61,7 @@ typedef struct{
 typedef struct{
   char *name;
   int size;
+  var_type type;
 }type_t;
 
 typedef struct{

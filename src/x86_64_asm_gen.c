@@ -4,7 +4,7 @@
 #include "include/error.h"
 #include "include/parse_tokens.h"
 #include "include/gtd.h"
-#define WORD_SIZE (sizeof(void*))
+const size_t WORD_SIZE = (sizeof(void*));
 char *intel_linux_preamble = ".intel_syntax noprefix\n\
 .global _start\n\
 .text\n\
@@ -62,7 +62,7 @@ char size_tabel[][6] = {
   {""},
   {"QWORD"}
 };
-char rax_size_table[][3] = {
+char rax_size_table[][5] = {
   {"al"},
   {"ax"},
   {"eax"},
@@ -87,13 +87,29 @@ void load_var(var_t var, program_t program)
 {
   char sprintf_buf[512];
   type_t var_type = program.types.buffer[var.type_index];
-  if(var_type.size == WORD_SIZE)
-	sprintf(sprintf_buf, "    mov  %s,[rbp - %d]\n",registers_str[current_reg],var.offset + 8);
+  if(var_type.size == WORD_SIZE || var.v_type == VAR_POINTER)
+	sprintf(sprintf_buf, "    mov  %s,[rbp - %d]\n",registers_str[current_reg],var.offset);
   else{
-	sprintf(sprintf_buf, "    movzx %s,%s PTR [rbp - %d]\n",registers_str[current_reg],size_tabel[var_type.size - 1],var.offset + 8);
+	sprintf(sprintf_buf, "    movzx %s,%s PTR [rbp - %d]\n",registers_str[current_reg],size_tabel[var_type.size - 1],var.offset);
   }
-  
   current_reg++;
+  dyn_appendManyM(asm_out, sprintf_buf, strlen(sprintf_buf));
+}
+
+void deref_pointer(var_t var,program_t program)
+{
+  char sprintf_buf[512];
+  load_var(var, program);
+  type_t var_type = program.types.buffer[var.type_index];
+  if(var_type.size == WORD_SIZE)
+	sprintf(sprintf_buf, "    mov  %s,[%s]\n",registers_str[current_reg],registers_str[current_reg - 1]);
+  else{
+	sprintf(sprintf_buf,"    xor %s,%s\n",registers_str[current_reg],registers_str[current_reg]);
+	dyn_appendManyM(asm_out, sprintf_buf, strlen(sprintf_buf));
+	sprintf(sprintf_buf, "    movzx %s,%s PTR [%s]\n",registers_str[current_reg],size_tabel[var_type.size - 1],registers_str[current_reg - 1]);
+  }
+  dyn_appendManyM(asm_out, sprintf_buf, strlen(sprintf_buf));
+  sprintf(sprintf_buf, "    mov %s,%s\n", registers_str[current_reg - 1],registers_str[current_reg]);
   dyn_appendManyM(asm_out, sprintf_buf, strlen(sprintf_buf));
 }
 
@@ -103,20 +119,32 @@ void store_var(var_t *var, program_t program)
   char  sprintf_buff[512];
   if(!var->stored){
 	var->stored = 1;
-	if(var_type.size == WORD_SIZE){
-	  char *push_rax = "    push rax\n";
-	  dyn_appendManyM(asm_out,push_rax,strlen(push_rax));
+	if(var->v_type ==  VAR_POINTER){
+	  sprintf(sprintf_buff,"    sub rsp,%d\n",WORD_SIZE);
+	  dyn_appendManyM(asm_out,sprintf_buff,strlen(sprintf_buff));
+	  sprintf(sprintf_buff, "    mov  %s PTR [rbp - %zu],%s\n", size_tabel[WORD_SIZE - 1], var->offset,rax_size_table[WORD_SIZE - 1]);
+	  dyn_appendManyM(asm_out,sprintf_buff,strlen(sprintf_buff));
+	  stack_size += WORD_SIZE;
 	}else{
 	  sprintf(sprintf_buff,"    sub rsp,%d\n",var_type.size);
 	  dyn_appendManyM(asm_out,sprintf_buff,strlen(sprintf_buff));
-	  sprintf(sprintf_buff, "    mov  %s PTR [rbp - %d],%s\n", size_tabel[var_type.size - 1], var->offset + 8,rax_size_table[var_type.size - 1]);
+	  sprintf(sprintf_buff, "    mov  %s PTR [rbp - %zu],%s\n", size_tabel[var_type.size - 1], var->offset,rax_size_table[var_type.size - 1]);
 	  dyn_appendManyM(asm_out,sprintf_buff,strlen(sprintf_buff));
+	  stack_size += var_type.size;
 	}
-	stack_size += var_type.size;
   }else{
-	sprintf(sprintf_buff, "    mov  %s PTR [rbp - %d],%s\n", size_tabel[var_type.size - 1], var->offset + 8,rax_size_table[var_type.size - 1]);
+	sprintf(sprintf_buff, "    mov  %s PTR [rbp - %zu],%s\n", size_tabel[var_type.size - 1], var->offset,rax_size_table[var_type.size - 1]);
 	 dyn_appendManyM(asm_out,sprintf_buff,strlen(sprintf_buff));
   }
+  current_reg = 0;
+}
+void store_deref_pointer(var_t *var, program_t program)
+{
+  type_t var_type = program.types.buffer[var->type_index];
+  char  sprintf_buff[512];
+  load_var(*var, program);
+  sprintf(sprintf_buff, "    mov  %s PTR [rbx],%s\n", size_tabel[var_type.size - 1],rax_size_table[var_type.size - 1]);
+  dyn_appendManyM(asm_out,sprintf_buff,strlen(sprintf_buff));
   current_reg = 0;
 }
 void gen_asm(ir_t ir,function_t func,program_t program)
@@ -170,9 +198,14 @@ void gen_asm(ir_t ir,function_t func,program_t program)
 	  // on linux the stack has to be 16 byte algined when calling c functions or anyother langauge for that matter
 	  size_t reg_saved_stack_space = 0; //space used to save register contents
 	  size_t safe_stack_offset = 0;
-	  for(int i = 0; i < current_reg;i++){
-		sprintf(snprintf_buf, "    push %s\n", registers_str[i]);
-		reg_saved_stack_space += 8;
+
+	
+	  /* for(int i = 0; i < current_reg;i++){ */
+	  /* 	sprintf(snprintf_buf, "    push %s\n", registers_str[i]); */
+	  /* 	dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf)); */
+	  /* } */
+	  for(int i = (program.functions.buffer[ir.args.fargs.func_ind].args.len - 1); i >= 0; i--){
+		sprintf(snprintf_buf, "    pop %s\n", func_arg_reg[i]);
 		dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
 	  }
 	  if((stack_size + reg_saved_stack_space) % 16 != 0){
@@ -180,10 +213,6 @@ void gen_asm(ir_t ir,function_t func,program_t program)
 	    safe_stack_offset = call_safe_stack_size - (stack_size + reg_saved_stack_space);
 		sprintf(snprintf_buf, "    sub rsp,%ld\n", safe_stack_offset);
 	   	dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
-	  }
-	  for(int i = (program.functions.buffer[ir.args.fargs.func_ind].args.len - 1); i >= 0; i--){
-		sprintf(snprintf_buf, "    pop %s\n", func_arg_reg[i]);
-		dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
 	  }
 	  sprintf(snprintf_buf, "    call %.*s\n",program.functions.buffer[ir.args.fargs.func_ind].name.len,program.functions.buffer[ir.args.fargs.func_ind].name.raw);
 	  dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
@@ -206,6 +235,29 @@ void gen_asm(ir_t ir,function_t func,program_t program)
 	  current_reg = 0;
 	  break;
 	}
+  case OP_GET_ADDR:
+	{
+	  var_t var = func.var_table.buffer[ir.args.arg];
+	  sprintf(snprintf_buf, "    lea  %s,[rbp - %d]\n",registers_str[current_reg],var.offset);
+	  dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
+	  current_reg++;
+	  break;
+	}
+  case OP_DEREF_ADDR:
+	{
+	  var_t var = func.var_table.buffer[ir.args.arg];
+	  deref_pointer(var, program);
+	  break;
+	}
+  case OP_DEREF_ASSIGN:
+	{
+	  var_t var = func.var_table.buffer[ir.args.arg];
+	  store_deref_pointer(&var,program);
+	  break;
+	}
+	case OP_CLEAR_STACK:
+	  current_reg = 0;
+	  break;
   default:
 	panic("UNIMPLEMENTED OPCODE\n");
   }

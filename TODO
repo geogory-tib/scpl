@@ -1,0 +1,14 @@
+Todo list:
+  Fix type system -
+    Currently I feel like the way I do pointers is not the best;
+    I need to find a better way to handle the current type system
+  Implement control flow -
+    I currently have 0 control flow in the langauge
+  Loops-
+    Once again no loops;
+
+  Type defs-
+    No way to implement types
+  Macro system?
+    This should speak for itself;
+

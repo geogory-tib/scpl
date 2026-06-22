@@ -212,6 +212,34 @@ void lex_input()
 		  dyn_appendM(lexer.output,tok);
 		  break;
 		}
+	  case '@':
+		{
+		  token_t tok = {
+			.raw = &lexer.input[lexer.current_pos],
+			.len = 1,
+			.type = TOK_AT,
+			.line = lexer.current_line,
+			.col = lexer.current_col,
+			.filename = lexer.filename
+		  };
+		  pull_ch();
+		  dyn_appendM(lexer.output,tok);
+		  break;
+		}
+	  case '^':
+		{
+		  token_t tok = {
+			.raw = &lexer.input[lexer.current_pos],
+			.len = 1,
+			.type = TOK_CARROT,
+			.line = lexer.current_line,
+			.col = lexer.current_col,
+			.filename = lexer.filename
+		  };
+		  pull_ch();
+		  dyn_appendM(lexer.output,tok);
+		  break;
+		}
 	  case '\n':
 	  case '\r':
 	  case '\t':

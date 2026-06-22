@@ -12,6 +12,8 @@ typedef enum{
   TOK_CPAREN,
   TOK_SCOLON,
   TOK_EQUAL,
+  TOK_AT,
+  TOK_CARROT,
   TOK_EOF,
   __tok_type__end
 }tok_type;
@@ -28,6 +30,8 @@ static char tok_type_str[][50] = {
   "TOK_OPAREN",
   "TOK_CPAREN",
   "TOK_SCOLON",
+  "TOK_AT",
+  "TOK_CARROT",
   "TOK_EQUAL",
   "TOK_EOF"
 };
