@@ -29,6 +29,8 @@ static struct
   program_t prog;
 }parser;
 
+void prat_parse_eat_line();
+
 token_t pull_tok()
 {
   if(parser.current_pos >= parser.input.len)
@@ -54,7 +56,7 @@ int get_v_type(){
   if(peek_tok().type == TOK_CARROT){
 	pull_tok();
 	return VAR_POINTER;
-  }else if(peek_tok().type == TOK_SYMBOL){
+  }else {
 	return VAR_BINARY;
   }
 }
@@ -111,19 +113,25 @@ void parse_func_args(function_t *func){
 	}
 	if(name.type != TOK_SYMBOL){
 	  throw_error_tok("Expected symbol for function argument name", func->name);
+	  
 	}
 	var_type v_type = get_v_type();
 	token_t type_name = pull_tok();
 	if(type_name.type != TOK_SYMBOL){
 	  throw_error_tok("Expected type after function argument",type_name);
+	  eat_line();
+	  continue;
 	}
 	int type_index = check_type(type_name);
 	if(type_index == -1){
 	  throw_error_tok("Undefined Type", type_name);
+	  eat_line();
+	  continue;
 	}
 	token_t semi_colon = pull_tok();
 	if(semi_colon.type != TOK_SCOLON){
 	  throw_error_tok("Expected ';' after argument type", type_name);
+	  continue;
 	}
 	arg_var = create_new_stack_var(func, name, type_index,v_type);
 	dyn_appendM(func->args, arg_var);
@@ -133,7 +141,7 @@ void parse_func_args(function_t *func){
 
 int check_if_func_defined(token_t tok)
 {
-   for(int i = 0;i < parser.prog.types.len;i++){
+   for(int i = 0;i < parser.prog.functions.len;i++){
 	if(tok.len > parser.prog.functions.buffer[i].name.len ||  tok.len < parser.prog.functions.buffer[i].name.len)
 	  continue;
 	if(!strncmp(tok.raw,parser.prog.functions.buffer[i].name.raw, tok.len)){

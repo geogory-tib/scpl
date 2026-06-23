@@ -248,6 +248,11 @@ void lex_input()
 		  pull_ch();
 		  break;
 		}
+	  case '#':
+		// eat comment line; plan on doing TODO -- integrate this with either the preproc or leave it here
+		for(char comment_ch = peek_ch();comment_ch != '\n'; comment_ch = peek_ch())
+		  pull_ch();
+		break;
 	  case 0:
 		token_t tok = {
 		  .raw = NULL,

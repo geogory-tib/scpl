@@ -1,5 +1,22 @@
+# I dont think you can double decast pointers l
+function ptr_test(a ^byte; b ^byte;) void;
+begin
+	^a = ^b;
+	return;
+end
+# this is a comment and should not affect the parsing
+function test(a byte; b byte;) byte;
+begin
+	var balls byte = a * (2 + 4);
+	balls = balls + b;
+	return balls;
+end
+
 function main() word;
 begin
-	var test byte = ((1 + 2 * 2)) * 4;
+	var a byte = ((1 + 2 * 2)) * 4;
+	var b byte = 22;
+	test(a; b;);
+	ptr_test(@a;@b;);
 	return 0;
 end
