@@ -5,6 +5,14 @@
 #include "include/parse_tokens.h"
 #include "include/gtd.h"
 const size_t WORD_SIZE = (sizeof(void*));
+
+/*
+  TODO -- Need to fix issue where register stack can overflow when to many arguments
+  are pushed into it. Overflow needs to be pushed onto the stack.
+
+
+ */
+
 char *intel_linux_preamble = ".intel_syntax noprefix\n\
 .global _start\n\
 .text\n\

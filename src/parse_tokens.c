@@ -235,12 +235,11 @@ void create_ir(function_t *func, token_t tok,var_type type,int paren)
 	  dyn_appendM(func->instructions, num_ir);
 	  break;
 	}
-  /* case TOK_OPAREN: */
-  /* 	{ */
-  /* 	  pull_tok(); */
-  /* 	  pratt_parse(func, 0,type,paren + 1); */
-  /* 	  break; */
-  /* 	} */
+  case TOK_OPAREN:
+	{
+	  pratt_parse(func, 0,type,paren + 1);
+	  break;
+	}
   case TOK_AT:
 	{
 	  token_t var_name = pull_tok();
@@ -316,15 +315,18 @@ void pratt_parse(function_t *func,int weight,var_type type,int paren)
 	pratt_parse(func, get_precedence(op),type,paren);
 	create_ir(func, op,type,paren);
   }
-  /* if(peek_tok().type == TOK_CPAREN && paren > 0 && weight == 0){ */
-  /* 	pull_tok(); */
-  /* 	return; */
-  /* }else if(peek_tok().type == TOK_CPAREN && paren == 0){ */
-  /* 	throw_error_tok("Unexpected closing paren", peek_tok()); */
-  /* 	prat_parse_eat_line(); */
-  /* 	return; */
-  /* } */
+  if(peek_tok().type == TOK_CPAREN && paren > 0 && weight == 0){
+	pull_tok();
+	return;
+  }else if(peek_tok().type == TOK_CPAREN && paren == 0){
+	throw_error_tok("Unexpected closing paren", peek_tok());
+	prat_parse_eat_line();
+	return;
+  }
   if(peek_tok().type == TOK_SCOLON && weight == 0){
+	if(paren > 0){
+	  throw_error_tok("Expected closing paren", peek_tok());
+	}
 	pull_tok();
 	return;
   }

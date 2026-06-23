@@ -1,13 +1,5 @@
-function test(ptr_a ^byte; ptr_b ^byte;) void;
-begin
-	^ptr_a = ^ptr_b + ^ptr_b;
-	return;
-end
-
 function main() word;
 begin
-	var test byte = 22;
-	var test_ptr ^byte = @test;
-	test(test_ptr;test_ptr;);
+	var test byte = ((1 + 2 * 2)) * 4;
 	return 0;
 end
