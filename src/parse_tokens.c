@@ -10,27 +10,44 @@ static int tok_precedence_table[] = {
   -3, // KEYWORD
   0, // NUM
   0, // SYMBOL
-  1, // PLUS 
-  1, // MINUS
-  2, // STAR
-  2, // SLASH
-  -3, // OPAREN
-  -3, // OPAREN
+  2, // PLUS 
+  2, // MINUS
+  3, // STAR
+  4, // SLASH
+  5, // OPAREN
+  5, // CPAREN
   -2, // SCOLON
-  -3, // EQUAL
+   1, // EQUAL
   4,  // @
   4, // ^
   -3 // EOF
+};
+static int op_compare_table[] = {
+  0, // KEYWORD
+  0, // NUM
+  0, // SYMBOL
+  0, // PLUS 
+  0, // MINUS
+  0, // STAR
+  0, // SLASH
+  0, // OPAREN
+  0, // CPAREN
+  0, // SCOLON
+   1, // EQUAL
+  0,  // @
+  0, // ^
+  0 // EOF
 };
 static struct
 {
   token_slice input;
   size_t current_pos;
+  size_t current_label;
   program_t prog;
 }parser;
 
 void prat_parse_eat_line();
-
+void parse_scope_body(function_t *func,scope_type scope);
 token_t pull_tok()
 {
   if(parser.current_pos >= parser.input.len)
@@ -47,7 +64,7 @@ token_t peek_tok()
 // for when there is an error
 void eat_line()
 {
-  for(token_t tok = pull_tok();tok.type != TOK_SCOLON;tok = pull_tok()){
+  for(token_t tok = pull_tok();tok.type != TOK_SCOLON && tok.type != TOK_EOF;tok = pull_tok()){
 	//just pulls the till the end of the line
   }
 }
@@ -153,7 +170,7 @@ int check_if_func_defined(token_t tok)
 int find_local_var(token_t tok,function_t func)
 {
     for(int i = 0;i < func.var_table.len;i++){
-	if(tok.len > func.var_table.buffer[i].name.len || tok.len > func.var_table.buffer[i].name.len)
+	if(tok.len > func.var_table.buffer[i].name.len || tok.len < func.var_table.buffer[i].name.len)
 	  continue;
 	if(!strncmp(tok.raw,func.var_table.buffer[i].name.raw, tok.len)){
 	  return i;
@@ -164,7 +181,7 @@ int find_local_var(token_t tok,function_t func)
 // eats remaining tokens until a semicolon is the next tok;
 void prat_parse_eat_line()
 {
-  for(token_t tok = peek_tok();tok.type != TOK_SCOLON;tok = peek_tok()){
+  for(token_t tok = peek_tok();tok.type != TOK_SCOLON && tok.type != TOK_EOF;tok = peek_tok()){
 	  pull_tok();
   }
 }
@@ -188,6 +205,9 @@ void handle_function_call(token_t symbol,function_t *func)
 int get_precedence(token_t tok)
 {
   return tok_precedence_table[tok.type];
+}
+int check_if_compare(token_t tok){
+  return op_compare_table[tok.type];
 }
 void pratt_parse(function_t *func,int weight,var_type type,int paren);
 void create_ir(function_t *func, token_t tok,var_type type,int paren)
@@ -299,9 +319,15 @@ void create_ir(function_t *func, token_t tok,var_type type,int paren)
 		  break;
 		}
 		ir_t load_var = {.type = OP_LOAD,.args.arg = var_index};
-		dyn_appendM(func->instructions, load_var);
-		break;
+		dyn_appendM(func->instructions, load_var);	
 	  }
+	  break;
+	}
+  case TOK_EQUAL:
+	{
+	  ir_t cmp_op = {.type = OP_CMP_EQUAL};
+	  dyn_appendM(func->instructions, cmp_op);
+	  break;
 	}
   default:
 	{
@@ -320,8 +346,16 @@ void pratt_parse(function_t *func,int weight,var_type type,int paren)
   create_ir(func, left,type,paren);
   while(get_precedence(peek_tok()) > weight){
 	op = pull_tok();
-	pratt_parse(func, get_precedence(op),type,paren);
-	create_ir(func, op,type,paren);
+	if(check_if_compare(op)){
+	  ir_t arg_push = {.type = OP_PUSH_ARG};
+	  dyn_appendM(func->instructions, arg_push);
+	  pratt_parse(func, weight,type, paren);
+	  dyn_appendM(func->instructions, arg_push);
+	  create_ir(func, op, type, paren);	  
+	}else{
+	  pratt_parse(func, get_precedence(op),type,paren);
+	  create_ir(func, op,type,paren);
+	}
   }
   if(peek_tok().type == TOK_CPAREN && paren > 0 && weight == 0){
 	pull_tok();
@@ -356,11 +390,11 @@ void parse_call_args(function_t *func,int func_called,token_t call_name)
 	args_supplied++;
   }
   if(args_supplied > called_func.args.len){
-	prat_parse_eat_line();
+	eat_line();
 	throw_error_tok("too many args provided for function",call_name);
   }
   if(args_supplied < called_func.args.len){
-	prat_parse_eat_line();
+	eat_line();
 	throw_error_tok("too few args provided for function",call_name);
   }
 }
@@ -379,6 +413,17 @@ void parse_var_assignment(function_t *func,int var_ind)
   dyn_appendM(func->instructions,inst);
 }
 
+void parse_if(function_t *func){
+  pratt_parse(func, 0, VAR_BINARY, 0);
+  ir_t if_label = {.type = LABEL, .args.arg = parser.current_label};
+  dyn_appendM(func->instructions, if_label);
+  parser.current_label++;
+  ir_t jump_false = {.type = OP_JMPF,.args.arg = parser.current_label};
+  dyn_appendM(func->instructions, jump_false);
+  parse_scope_body(func, SCOPE_IF);
+  ir_t if_end_label = {.type = LABEL, .args.arg = parser.current_label};
+  dyn_appendM(func->instructions, if_end_label);
+}
 
 void parse_var_dec(function_t *func)
 {
@@ -427,9 +472,14 @@ void parse_var_dec(function_t *func)
   ir_t ret_ir = {.type = OP_RET};
   dyn_appendM(func->instructions, ret_ir);
 }
-void parse_function_body(function_t *func)
+void parse_scope_body(function_t *func,scope_type scope)
 {
+  if(peek_tok().type != TOK_KEYWORD && peek_tok().val != BEGIN_IND){
+	throw_error_tok("Expected begin", peek_tok());
+  }
+  pull_tok();
   for(token_t tok = pull_tok();;tok = pull_tok()){
+	
 	switch(tok.type){
 	case TOK_KEYWORD:
 	  switch(tok.val){
@@ -441,6 +491,11 @@ void parse_function_body(function_t *func)
 	  case RETURN_IND:
 		{
 		  parse_return(func);
+		  break;
+		}
+	  case IF_IND:
+		{
+		  parse_if(func);
 		  break;
 		}
 	  case  END_IND:
@@ -459,6 +514,11 @@ void parse_function_body(function_t *func)
 		  handle_function_call(tok, func);
 		  ir_t clear_stack_ir = {.type = OP_CLEAR_STACK};
 		  dyn_appendM(func->instructions, clear_stack_ir);
+		  if(peek_tok().type != TOK_SCOLON){
+			throw_error_tok("Expected semicolon after function call", peek_tok());
+			eat_line();
+		  }else
+			pull_tok();
 		}else if(next_tok.type == TOK_EQUAL){
 		  pull_tok();
 		  int var_index = find_local_var(tok, *func);
@@ -492,6 +552,12 @@ void parse_function_body(function_t *func)
 		parse_ptr_assignment(func,var_index);
 		break; 
 	  }
+	default:
+	  {
+		throw_error_tok("Unexpected token", tok);
+		eat_line();
+		break;
+	  }
 	}
   }
  end:
@@ -519,8 +585,7 @@ void parse_function()
   pull_tok();
   dyn_appendM(parser.prog.functions, func);
   if(peek_tok().type == TOK_KEYWORD && peek_tok().val == BEGIN_IND){
-	pull_tok();
-	parse_function_body(&parser.prog.functions.buffer[parser.prog.functions.len - 1]);
+	parse_scope_body(&parser.prog.functions.buffer[parser.prog.functions.len - 1],SCOPE_FUNC);
   }
 }
 

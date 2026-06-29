@@ -199,6 +199,7 @@ void gen_asm(ir_t ir,function_t func,program_t program)
 	  dyn_appendManyM(asm_out, leave, (sizeof(leave) - 1));
 	  char ret[] = "    ret\n";
 	  dyn_appendManyM(asm_out, ret, (sizeof(ret) - 1));
+	  current_reg = 0;
 	  break;
 	}
   case OP_CALL:
@@ -263,9 +264,31 @@ void gen_asm(ir_t ir,function_t func,program_t program)
 	  store_deref_pointer(&var,program);
 	  break;
 	}
-	case OP_CLEAR_STACK:
+  case OP_CLEAR_STACK:
+	{
 	  current_reg = 0;
 	  break;
+	}
+  case OP_CMP_EQUAL:
+	{
+	  // use sete for bool values
+	  char pop_args_and_cmp[] = "    pop rbx\n    pop rax\n    cmp rax,rbx\n sete al\n";
+	  dyn_appendManyM(asm_out, pop_args_and_cmp, sizeof(pop_args_and_cmp) - 1);
+	  break;
+	}
+	// Currently not really how i want to do this I need to figure out a better way
+  case OP_JMPF:
+	{
+	  sprintf(snprintf_buf, "    jne .Llable%d\n", ir.args.arg);
+	  dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
+	  break;
+	}
+  case LABEL:
+	{
+	  sprintf(snprintf_buf, ".Llable%d:\n", ir.args.arg);
+	  dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
+	  break;
+	}
   default:
 	panic("UNIMPLEMENTED OPCODE\n");
   }

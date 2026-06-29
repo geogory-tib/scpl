@@ -6,7 +6,7 @@ _start:
     mov rdi,rax
     mov rax,60
     syscall
-ptr_test:
+fib:
     push rbp
     mov rbp,rsp
     mov rax,rdi
@@ -15,71 +15,74 @@ ptr_test:
     mov rax,rsi
     sub rsp,8
     mov  QWORD PTR [rbp - 16],rax
+    mov rax,rdx
+    sub rsp,8
+    mov  QWORD PTR [rbp - 24],rax
+    mov rax,rcx
+    sub rsp,8
+    mov  QWORD PTR [rbp - 32],rax
+    mov  rax,[rbp - 8]
+    sub rsp,8
+    mov  QWORD PTR [rbp - 40],rax
     mov  rax,[rbp - 16]
-    xor rbx,rbx
-    movzx rbx,BYTE PTR [rax]
-    mov rax,rbx
-    mov  rbx,[rbp - 8]
-    mov  BYTE PTR [rbx],al
+    sub rsp,8
+    mov  QWORD PTR [rbp - 48],rax
+    mov  rax,[rbp - 40]
+    mov  rbx,[rbp - 48]
+    add rax,rbx
+    sub rsp,8
+    mov  QWORD PTR [rbp - 56],rax
+    mov  rax,[rbp - 24]
+    push rax
+    mov  rax,[rbp - 32]
+    push rax
+    pop rbx
+    pop rax
+    cmp rax,rbx
+ sete al
+.Llable0:
+    jne .Llable1
+    mov  rax,[rbp - 56]
     leave
     ret
-test:
-    push rbp
-    mov rbp,rsp
-    mov rax,rdi
-    sub rsp,1
-    mov  BYTE PTR [rbp - 1],al
-    mov rax,rsi
-    sub rsp,1
-    mov  BYTE PTR [rbp - 2],al
-    movzx rax,BYTE PTR [rbp - 1]
-    mov rbx,2
-    mov rcx,4
-    add rbx,rcx
-    imul rax,rbx
-    sub rsp,1
-    mov  BYTE PTR [rbp - 3],al
-    movzx rax,BYTE PTR [rbp - 3]
-    movzx rbx,BYTE PTR [rbp - 2]
+.Llable1:
+    mov  rax,[rbp - 48]
+    push rax
+    mov  rax,[rbp - 56]
+    push rax
+    mov  rax,[rbp - 24]
+    mov rbx,1
     add rax,rbx
-    mov  BYTE PTR [rbp - 3],al
-    movzx rax,BYTE PTR [rbp - 3]
+    push rax
+    mov  rax,[rbp - 32]
+    push rax
+    pop rcx
+    pop rdx
+    pop rsi
+    pop rdi
+    sub rsp,8
+    call fib
+    add rsp,8
+    mov rax,rax
     leave
     ret
 main:
     push rbp
     mov rbp,rsp
+    mov rax,0
+    push rax
     mov rax,1
-    mov rbx,2
-    mov rcx,2
-    imul rbx,rcx
-    add rax,rbx
-    mov rbx,4
-    imul rax,rbx
-    sub rsp,1
-    mov  BYTE PTR [rbp - 1],al
-    mov rax,22
-    sub rsp,1
-    mov  BYTE PTR [rbp - 2],al
-    movzx rax,BYTE PTR [rbp - 1]
     push rax
-    movzx rax,BYTE PTR [rbp - 2]
+    mov rax,0
     push rax
+    mov rax,3
+    push rax
+    pop rcx
+    pop rdx
     pop rsi
     pop rdi
-    sub rsp,14
-    call test
-    add rsp,14
-    mov rax,rax
-    lea  rax,[rbp - 1]
-    push rax
-    lea  rax,[rbp - 2]
-    push rax
-    pop rsi
-    pop rdi
-    sub rsp,14
-    call ptr_test
-    add rsp,14
+    call fib
+    add rsp,0
     mov rax,rax
     mov rax,0
     leave

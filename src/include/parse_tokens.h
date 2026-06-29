@@ -16,8 +16,18 @@ typedef enum {
   OP_DEREF_ADDR,
   OP_DEREF_ASSIGN,
   OP_CLEAR_STACK,
-  OP_CALL
+  OP_CMP_EQUAL,
+  OP_CALL,
+  OP_JMPT,
+  OP_JMPF,
+  LABEL
 }ir_type;
+// dont know if I need the scope enum
+typedef enum{
+  SCOPE_FUNC = 0,
+  SCOPE_IF,
+  SCOPE_FOR
+}scope_type;
 typedef enum{
   VAR_BINARY = 0,
   VAR_POINTER,
@@ -51,12 +61,12 @@ typedef struct
   }args;
 }ir_t;
 
-
 typedef struct{
   ir_t *buffer;
   size_t len;
   size_t cap;
 }ir_slice;
+
 
 typedef struct{
   char *name;

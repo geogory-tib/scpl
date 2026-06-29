@@ -1,22 +1,31 @@
 # I dont think you can double decast pointers l
-function ptr_test(a ^byte; b ^byte;) void;
-begin
-	^a = ^b;
-	return;
-end
+#function ptr_test(a ^byte; b ^byte;) void;
+#begin
+#	^a = ^b;
+#	return;
+#end
 # this is a comment and should not affect the parsing
-function test(a byte; b byte;) byte;
+#function test(a byte; b byte;) byte;
+#begin
+#	var balls byte = a * (2 + 4);
+#	balls = balls + b;
+#	return balls;
+#end
+
+function fib(in_a word; in_b word; count word; fib_end word;) word;
 begin
-	var balls byte = a * (2 + 4);
-	balls = balls + b;
-	return balls;
+	var a word = in_a;
+	var b word = in_b;
+	var c word = a + b;
+	if count  = fib_end;
+	   	begin
+			return c;
+		end
+	return fib(b;c;count + 1;fib_end;);
 end
 
 function main() word;
 begin
-	var a byte = ((1 + 2 * 2)) * 4;
-	var b byte = 22;
-	test(a; b;);
-	ptr_test(@a;@b;);
+	fib(0; 1;0;3;);
 	return 0;
 end
