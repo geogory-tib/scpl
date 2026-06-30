@@ -100,6 +100,25 @@ void lex_input()
 	  lex_number();
 	}else{
 	  switch(ch){
+	  case '!':
+		{
+		  token_t tok = {
+			.raw = &lexer.input[lexer.current_pos],
+			.len = 1,
+			.type = TOK_NOT,
+			.line = lexer.current_line,
+			.col = lexer.current_col,
+			.filename = lexer.filename
+		  };
+		  pull_ch();
+		  if(peek_ch() ==  '=' ){
+			pull_ch();
+			tok.type = TOK_NOT_EQ;
+			tok.len++;
+		  }
+		  dyn_appendM(lexer.output, tok);
+		  break;
+		}
 	  case ';':
 		{
 		  token_t tok = {

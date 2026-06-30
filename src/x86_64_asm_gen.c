@@ -271,15 +271,28 @@ void gen_asm(ir_t ir,function_t func,program_t program)
 	}
   case OP_CMP_EQUAL:
 	{
-	  // use sete for bool values
-	  char pop_args_and_cmp[] = "    pop rbx\n    pop rax\n    cmp rax,rbx\n sete al\n";
+	  // use sete for bool values. XOR is used to clear rax so value won't be clobered
+	  char pop_args_and_cmp[] = "    xor rax,rax\n    pop rbx\n    pop rcx\n    cmp rbx,rcx\n   sete al\n";
+	  dyn_appendManyM(asm_out, pop_args_and_cmp, sizeof(pop_args_and_cmp) - 1);
+	  break;
+	}
+  case OP_CMP_NOT_EQ:
+	{
+	  // if values are equal the and will make the value false
+	  char pop_args_and_cmp[] = "    xor rax,rax\n    pop rbx\n    pop rcx\n    cmp rbx,rcx\n   sete al\n    xor al,0x01\n";
 	  dyn_appendManyM(asm_out, pop_args_and_cmp, sizeof(pop_args_and_cmp) - 1);
 	  break;
 	}
 	// Currently not really how i want to do this I need to figure out a better way
   case OP_JMPF:
 	{
-	  sprintf(snprintf_buf, "    jne .Llable%d\n", ir.args.arg);
+	  sprintf(snprintf_buf, "    test rax,rax\n    je .Llable%d\n", ir.args.arg);
+	  dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
+	  break;
+	}
+  case OP_JMPT:
+	{
+	  sprintf(snprintf_buf, "    test rax,rax\n    jne .Llable%d\n", ir.args.arg);
 	  dyn_appendManyM(asm_out, snprintf_buf, strlen(snprintf_buf));
 	  break;
 	}

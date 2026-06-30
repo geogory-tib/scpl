@@ -4,7 +4,7 @@ int main(){
   int val;
   puts("Type a number");
   scanf("%d",&val);
-  if(val != 42){
+  if(val){
     puts("Hello world!\n");
   }else{
     puts(" Bye World!\n");

@@ -18,6 +18,7 @@ static int tok_precedence_table[] = {
   5, // CPAREN
   -2, // SCOLON
    1, // EQUAL
+   1, // NOT_EQ
   4,  // @
   4, // ^
   -3 // EOF
@@ -34,6 +35,7 @@ static int op_compare_table[] = {
   0, // CPAREN
   0, // SCOLON
    1, // EQUAL
+   1, // NOT_EQ
   0,  // @
   0, // ^
   0 // EOF
@@ -326,6 +328,12 @@ void create_ir(function_t *func, token_t tok,var_type type,int paren)
   case TOK_EQUAL:
 	{
 	  ir_t cmp_op = {.type = OP_CMP_EQUAL};
+	  dyn_appendM(func->instructions, cmp_op);
+	  break;
+	}
+  case TOK_NOT_EQ:
+	{
+	  ir_t cmp_op = {.type = OP_CMP_NOT_EQ};
 	  dyn_appendM(func->instructions, cmp_op);
 	  break;
 	}

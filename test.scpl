@@ -12,20 +12,25 @@
 #	return balls;
 #end
 
-function fib(in_a word; in_b word; count word; fib_end word;) word;
-begin
-	var a word = in_a;
-	var b word = in_b;
-	var c word = a + b;
-	if count  = fib_end;
-	   	begin
-			return c;
-		end
-	return fib(b;c;count + 1;fib_end;);
-end
+#function fib(in_a word; in_b word; count word; fib_end word;) word;
+#begin
+#	var a word = in_a;
+#	var b word = in_b;
+#	var c word = a + b;
+#	if count  = fib_end;
+#	   	begin
+#			return c;
+#		end
+#	return fib(b;c;count + 1;fib_end;);
+#end
 
 function main() word;
 begin
-	fib(0; 1;0;3;);
+	var a byte = 1 + 22;
+	if a != 22;
+	begin
+		# need to handle scoped local variables;
+		a = 0;
+	end
 	return 0;
 end

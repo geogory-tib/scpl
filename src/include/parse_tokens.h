@@ -17,6 +17,7 @@ typedef enum {
   OP_DEREF_ASSIGN,
   OP_CLEAR_STACK,
   OP_CMP_EQUAL,
+  OP_CMP_NOT_EQ,
   OP_CALL,
   OP_JMPT,
   OP_JMPF,

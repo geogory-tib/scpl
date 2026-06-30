@@ -30,7 +30,7 @@ main:
 	mov	eax, 0
 	call	__isoc99_scanf@PLT
 	mov	eax, DWORD PTR -12[rbp]
-	cmp	eax, 42
+	test	eax, eax
 	je	.L2
 	lea	rax, .LC2[rip]
 	mov	rdi, rax
